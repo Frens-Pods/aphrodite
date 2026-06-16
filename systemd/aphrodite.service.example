@@ -1,0 +1,22 @@
+[Unit]
+Description=Aphrodite sidecar backend for local Hermes plugin products
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust paths to your deployment. Do not start or enable this unit until
+# Aphrodite has passed preflight and an operator has approved activation.
+WorkingDirectory=/opt/aphrodite
+EnvironmentFile=-/etc/aphrodite/aphrodite.env
+Environment=HERMES_HOME=/opt/hermes
+ExecStart=/opt/aphrodite/venv/bin/python -m uvicorn aphrodite.app:create_app --factory --host ${APHRODITE_HOST} --port ${APHRODITE_PORT}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/aphrodite
+
+[Install]
+WantedBy=multi-user.target

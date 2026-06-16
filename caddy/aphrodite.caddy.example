@@ -1,0 +1,25 @@
+# Aphrodite Caddy route example.
+# Copy into the approved Caddy site after the Aphrodite service is healthy.
+# Replace aphrodite.example.internal with the approved HTTPS hostname.
+
+aphrodite.example.internal {
+    # Response compression is safe here: Discord signs the incoming request body,
+    # and Caddy reverse_proxy forwards request bodies unchanged by default.
+    encode zstd gzip
+
+    @discord_interactions {
+        path /discord/interactions
+        method POST
+    }
+    reverse_proxy @discord_interactions 127.0.0.1:9079 {
+        # Keep Discord signature headers explicit for the interaction verifier.
+        header_up X-Signature-Ed25519 {http.request.header.X-Signature-Ed25519}
+        header_up X-Signature-Timestamp {http.request.header.X-Signature-Timestamp}
+    }
+
+    @health {
+        path /health /status
+        method GET
+    }
+    reverse_proxy @health 127.0.0.1:9079
+}

@@ -1,0 +1,30 @@
+# Aphrodite local ignores
+
+__pycache__/
+.venv/
+venv/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / packaging artifacts.
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Local secrets and operator environment.
+config/*.env
+!config/*.env.example
+.env
+.env.*
+
+# Private local overlay: relocated operator suite, runbooks, real IDs/paths.
+.local/
+
+# Vendored third-party ACP client reference clone (not for publication).
+_acp_ref/
+
+# Operator-generated local data.
+data/
