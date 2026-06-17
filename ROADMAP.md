@@ -10,13 +10,18 @@ and is intentionally out of scope here.
 
 ## Status
 
-The dispatch core, Discord interaction verification, MCP server, and the
-bundled module adapters are implemented and covered by the test suite. The
-project is pre-1.0; interfaces may still change.
+The dispatch core, Discord interaction verification, bundled module adapters,
+discovery-based adapter registration, deployment examples, and optional MCP
+server are implemented and covered by the test suite. Adapters are discovered
+via the `aphrodite.adapters` entry-point group; deployment examples cover Docker
+and bare-metal; and the MCP server covers `skillopt` plus read-only `image_gen`
+and `acp_relay` metadata. The project is pre-1.0; interfaces may still change.
 
 ## Module adapters
 
-The public module set is the native trio implemented in Aphrodite itself:
+The public module set is the native trio implemented in Aphrodite itself.
+Adapters are discovered through the `aphrodite.adapters` entry-point group, so
+third-party and overlay packages register their own adapters.
 
 - `skillopt` — self-contained SkillOpt run storage, evaluations, review UI, and
   status dispatch.
@@ -28,10 +33,8 @@ The public module set is the native trio implemented in Aphrodite itself:
 
 ## Planned
 
-- Broaden adapter registration to a discovery-based mechanism.
-- Expand the MCP tool surface beyond skillopt.
-- First-class packaging for downstream reuse and versioned releases.
-- More end-to-end deployment examples (containerized and bare-metal).
+- Publish versioned releases to PyPI (packaging groundwork is in place in
+  `pyproject.toml`).
 
 ## Non-goals
 
