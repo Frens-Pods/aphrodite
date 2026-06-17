@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from aphrodite.app import create_app
 from aphrodite import readiness
+from aphrodite.doctor import doctor_payload, REQUIRED_MODULE_FILES, REQUIRED_REPO_ARTIFACTS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -138,6 +139,48 @@ def test_live_service_staleness_guidance_doc_and_verify_boundary():
     ]
     for marker in forbidden_verify_markers:
         assert marker not in verify_text
+
+
+def _touch_required_files(root: Path, required: list[str]) -> None:
+    for relative_path in required:
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
+
+
+def _stub_doctor_dependencies(monkeypatch) -> None:
+    monkeypatch.setattr("aphrodite.doctor.mcp_readiness", lambda root: {"ok": True})
+    monkeypatch.setattr("aphrodite.doctor.service_readiness", lambda root: {"ok": True})
+    monkeypatch.setattr("aphrodite.doctor.http_runtime_observability", lambda: {"ok": True})
+    monkeypatch.setattr("aphrodite.doctor.production_endpoint_preflight", lambda root: {"ok": True})
+    monkeypatch.setattr("aphrodite.doctor.latest_version_nudge", lambda: {"checked": False})
+
+
+def test_doctor_ok_true_on_installed_layout_without_repo_artifacts(monkeypatch, tmp_path):
+    _stub_doctor_dependencies(monkeypatch)
+    _touch_required_files(tmp_path, REQUIRED_MODULE_FILES)
+
+    payload = doctor_payload(root=tmp_path)
+
+    assert payload["ok"] is True
+    assert payload["install_mode"] == "installed"
+    assert payload["missing"] == []
+
+
+def test_doctor_ok_false_in_source_tree_when_artifact_missing(monkeypatch, tmp_path):
+    _stub_doctor_dependencies(monkeypatch)
+    _touch_required_files(tmp_path, REQUIRED_MODULE_FILES)
+    (tmp_path / "pyproject.toml").write_text("", encoding="utf-8")
+    _touch_required_files(
+        tmp_path,
+        [relative_path for relative_path in REQUIRED_REPO_ARTIFACTS if relative_path != "scripts/verify.sh"],
+    )
+
+    payload = doctor_payload(root=tmp_path)
+
+    assert payload["ok"] is False
+    assert payload["install_mode"] == "source"
+    assert "scripts/verify.sh" in payload["missing"]
 
 
 def test_doctor_includes_mcp_and_service_readiness(monkeypatch):

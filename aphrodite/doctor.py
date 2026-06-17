@@ -8,7 +8,7 @@ from .config import DEFAULT_MODULES
 from .readiness import http_runtime_observability, mcp_readiness, production_endpoint_preflight, service_readiness
 from .update import latest_version_nudge
 
-REQUIRED_FILES = [
+REQUIRED_MODULE_FILES = [
     "aphrodite/__init__.py",
     "aphrodite/app.py",
     "aphrodite/config.py",
@@ -25,6 +25,9 @@ REQUIRED_FILES = [
     "aphrodite/modules/image_gen.py",
     "aphrodite/modules/skillopt.py",
     "aphrodite/modules/acp_relay.py",
+]
+
+REQUIRED_REPO_ARTIFACTS = [
     "scripts/aphrodite",
     "scripts/verify.sh",
     "README.md",
@@ -38,12 +41,17 @@ REQUIRED_FILES = [
 
 def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
     root_path = Path(root or Path(__file__).resolve().parents[1]).resolve()
-    present = [rel for rel in REQUIRED_FILES if (root_path / rel).exists()]
-    missing = [rel for rel in REQUIRED_FILES if not (root_path / rel).exists()]
+    is_source_tree = (root_path / "pyproject.toml").exists()
+    required = list(REQUIRED_MODULE_FILES)
+    if is_source_tree:
+        required.extend(REQUIRED_REPO_ARTIFACTS)
+    present = [rel for rel in required if (root_path / rel).exists()]
+    missing = [rel for rel in required if not (root_path / rel).exists()]
     return {
         "ok": not missing,
         "service": "aphrodite",
         "root": str(root_path),
+        "install_mode": "source" if is_source_tree else "installed",
         "modules": list(DEFAULT_MODULES),
         "hermes_core_policy": "read-only / untouched",
         "required_files_present": present,
