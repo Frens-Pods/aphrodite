@@ -120,4 +120,4 @@ Runtime behavior:
 - The `acp` Python client is imported lazily inside `acp_transport`; environments that do not install the optional client can still import the module and use tests/fake transports.
 - Default profile, provider, model, binary, working directory, database path, and turn timeout are configurable with `APHRODITE_ACP_*` environment variables.
 
-Default relay settings in the current code are profile `forge`, provider `openrouter`, model `openai/gpt-4o-mini`, and timeout `240.0` seconds.
+Default relay settings in the current code are profile `forge` and timeout `240.0` seconds. Provider and model are unset by default, so the relay uses the Hermes profile's configured engine unless `APHRODITE_ACP_PROVIDER` and `APHRODITE_ACP_MODEL` are both set.

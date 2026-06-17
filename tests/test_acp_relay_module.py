@@ -4,6 +4,7 @@ import asyncio
 import os
 from pathlib import Path
 import sys
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -15,7 +16,9 @@ from aphrodite.modules.acp_relay import (  # noqa: E402
     AcpTransportError,
     RelayConfig,
     TurnResult,
+    acp_transport,
     configure_relay,
+    readiness,
     reset_relay,
 )
 
@@ -56,8 +59,6 @@ class FakeTransport:
 def _relay(tmp_path: Path, transport=None) -> AcpRelay:
     cfg = RelayConfig(
         profile="forge",
-        model="openai/gpt-4o-mini",
-        provider="openrouter",
         hermes_bin="hermes",
         cwd=str(tmp_path),
         db_path=str(tmp_path / "acp.sqlite3"),
@@ -66,12 +67,138 @@ def _relay(tmp_path: Path, transport=None) -> AcpRelay:
 
 
 def test_command_uses_profile_and_acp_subcommand():
-    cfg = RelayConfig(profile="forge", model="openai/gpt-4o-mini", provider="openrouter", hermes_bin="hermes")
+    cfg = RelayConfig(profile="forge", hermes_bin="hermes")
     binary, args = cfg.command()
     assert binary == "hermes"
-    # ACP ignores -m/--provider; engine is selected via set_session_model.
+    # ACP ignores -m/--provider; explicit overrides switch via set_session_model.
     assert args == ["-p", "forge", "acp"]
-    assert cfg.model_choice_id() == "openrouter:openai/gpt-4o-mini"
+    assert cfg.model_choice_id() is None
+    explicit = RelayConfig(
+        profile="forge",
+        model="openai/gpt-4o-mini",
+        provider="openrouter",
+        hermes_bin="hermes",
+    )
+    assert explicit.model_choice_id() == "openrouter:openai/gpt-4o-mini"
+
+
+def test_model_choice_id_requires_both_provider_and_model():
+    assert (
+        RelayConfig(
+            profile="forge",
+            provider="openrouter",
+            model="",
+        ).model_choice_id()
+        is None
+    )
+    assert (
+        RelayConfig(
+            profile="forge",
+            provider="",
+            model="openai/gpt-4o-mini",
+        ).model_choice_id()
+        is None
+    )
+    assert (
+        RelayConfig(
+            profile="forge",
+            provider="",
+            model="",
+        ).model_choice_id()
+        is None
+    )
+    assert (
+        RelayConfig(
+            profile="forge",
+            provider="openrouter",
+            model="openai/gpt-4o-mini",
+        ).model_choice_id()
+        == "openrouter:openai/gpt-4o-mini"
+    )
+
+
+def test_readiness_reports_profile_default_model_choice(monkeypatch):
+    monkeypatch.delenv("APHRODITE_ACP_MODEL", raising=False)
+    monkeypatch.delenv("APHRODITE_ACP_PROVIDER", raising=False)
+
+    payload = readiness()
+
+    assert payload["model"] == ""
+    assert payload["provider"] == ""
+    assert payload["model_choice"] is None
+
+
+def test_acp_transport_resolves_engine_override_or_profile(monkeypatch, tmp_path):
+    class FakeBlock:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    def run(cfg, *, current_model_id):
+        calls: list[dict] = []
+
+        class FakeSpawn:
+            def __init__(self, factory, binary, *args, env=None, cwd=None):
+                factory(object())
+
+            async def __aenter__(self):
+                class Conn:
+                    async def initialize(self, **kwargs):
+                        return None
+
+                    async def new_session(self, cwd):
+                        models = (
+                            SimpleNamespace(current_model_id=current_model_id)
+                            if current_model_id is not None
+                            else None
+                        )
+                        return SimpleNamespace(session_id="S1", models=models)
+
+                    async def load_session(self, cwd, session_id):
+                        return None
+
+                    async def set_session_model(self, model_id, session_id):
+                        calls.append({"model_id": model_id, "session_id": session_id})
+
+                    async def prompt(self, prompt, session_id):
+                        return SimpleNamespace(stop_reason="end_turn")
+
+                return Conn(), object()
+
+            async def __aexit__(self, *a):
+                return False
+
+        acp_module = ModuleType("acp")
+        acp_module.spawn_agent_process = FakeSpawn
+        acp_module.RequestError = SimpleNamespace(
+            method_not_found=lambda method: RuntimeError(method)
+        )
+        acp_schema = ModuleType("acp.schema")
+        acp_schema.AgentMessageChunk = type("AgentMessageChunk", (), {})
+        acp_schema.AgentThoughtChunk = type("AgentThoughtChunk", (), {})
+        acp_schema.AllowedOutcome = FakeBlock
+        acp_schema.ClientCapabilities = type("ClientCapabilities", (), {})
+        acp_schema.DeniedOutcome = FakeBlock
+        acp_schema.RequestPermissionResponse = FakeBlock
+        acp_schema.TextContentBlock = FakeBlock
+        acp_module.schema = acp_schema
+        monkeypatch.setitem(sys.modules, "acp", acp_module)
+        monkeypatch.setitem(sys.modules, "acp.schema", acp_schema)
+        asyncio.run(acp_transport(cfg, "hi", None))
+        return calls
+
+    base = dict(cwd=str(tmp_path), db_path=str(tmp_path / "relay.sqlite3"))
+
+    # No override: the relay drives the profile's own current model.
+    assert run(RelayConfig(**base), current_model_id="openai-codex:gpt-5.5") == [
+        {"model_id": "openai-codex:gpt-5.5", "session_id": "S1"}
+    ]
+    # Explicit override wins over the profile default.
+    assert run(
+        RelayConfig(model="openai/gpt-4o-mini", provider="openrouter", **base),
+        current_model_id="openai-codex:gpt-5.5",
+    ) == [{"model_id": "openrouter:openai/gpt-4o-mini", "session_id": "S1"}]
+    # Neither an override nor an advertised profile model: nothing to set.
+    assert run(RelayConfig(**base), current_model_id=None) == []
 
 
 def test_first_turn_creates_session_and_records(tmp_path):
@@ -259,7 +386,9 @@ def test_build_router_registers_acp_relay():
     assert "acp_relay" in router.systems
     result = router.dispatch("acp_relay:v1:health", context={"source": "test"})
     assert result["ok"] is True
-    assert result["result"]["readiness"]["profile"]
+    readiness = result["result"]["readiness"]
+    assert readiness["profile"]
+    assert "model_choice" in readiness
 
 
 # --------------------------------------------------------------------------- #
@@ -288,7 +417,7 @@ def test_e2e_live_forge_maintains_context(tmp_path):
             return a, b
 
         first, second = asyncio.run(convo())
-        # Turn 1 produced real text on the working (OpenRouter) engine.
+        # Turn 1 produced real text on the profile's configured engine.
         assert first["reply"], "turn 1 produced no reply"
         assert first["acp_session_id"]
         # Maintained session: turn 2 reuses the same ACP session.

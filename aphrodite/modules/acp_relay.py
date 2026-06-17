@@ -40,10 +40,8 @@ from ..paths import hermes_root
 # --------------------------------------------------------------------------- #
 
 DEFAULT_PROFILE = "forge"
-# Some profile defaults may depend on interactive credentials that a background
-# subprocess cannot mint, so the relay drives an explicit API-keyed provider.
-DEFAULT_MODEL = "openai/gpt-4o-mini"
-DEFAULT_PROVIDER = "openrouter"
+DEFAULT_MODEL = ""
+DEFAULT_PROVIDER = ""
 DEFAULT_TURN_TIMEOUT = 240.0
 DEFAULT_PROTOCOL_VERSION = 1
 
@@ -100,14 +98,17 @@ class RelayConfig:
 
         Only ``-p <profile> acp`` is passed: Hermes' ACP adapter ignores the
         top-level ``-m``/``--provider`` flags (it builds the per-session agent
-        from the profile/auth defaults). The engine is instead selected at
-        runtime via ``session/set_model`` — see ``model_choice_id``.
+        from the profile/auth defaults). A runtime ``session/set_model`` switch
+        happens only when an explicit provider/model override is configured;
+        otherwise the profile's own engine drives the turn.
         """
         return self.hermes_bin, ["-p", self.profile, "acp"]
 
-    def model_choice_id(self) -> str:
-        """ACP model id understood by Hermes' ``set_session_model`` (``<provider>:<model>``)."""
-        return f"{self.provider}:{self.model}"
+    def model_choice_id(self) -> str | None:
+        """ACP model id for Hermes, or None to keep the profile default engine."""
+        if self.provider and self.model:
+            return f"{self.provider}:{self.model}"
+        return None
 
 
 def load_relay_config(**overrides: Any) -> RelayConfig:
@@ -250,16 +251,22 @@ async def acp_transport(
             if acp_session_id is None:
                 new = await conn.new_session(cwd=config.cwd)
                 session_id = new.session_id
+                session_models = getattr(new, "models", None)
             else:
                 session_id = acp_session_id
-                await conn.load_session(cwd=config.cwd, session_id=session_id)
-            # Force the engine every turn: profile defaults may depend on
-            # interactive credentials that are not usable in a fresh background
-            # process, so switch to the explicit provider/model before prompting.
-            await conn.set_session_model(
-                model_id=config.model_choice_id(),
-                session_id=session_id,
-            )
+                loaded = await conn.load_session(cwd=config.cwd, session_id=session_id)
+                session_models = getattr(loaded, "models", None)
+            # Resolve the engine: an explicit relay override (provider+model)
+            # wins; otherwise use the profile's own current model. Some engines
+            # (e.g. openai-codex) reject an empty model, and the ACP session does
+            # not auto-apply its current model, so the relay sets it explicitly.
+            profile_model = getattr(session_models, "current_model_id", None)
+            model_choice = config.model_choice_id() or profile_model
+            if model_choice:
+                await conn.set_session_model(
+                    model_id=model_choice,
+                    session_id=session_id,
+                )
             resp = await conn.prompt(
                 prompt=[TextContentBlock(type="text", text=message)],
                 session_id=session_id,
@@ -538,6 +545,7 @@ def readiness() -> dict[str, Any]:
         "profile": cfg.profile,
         "model": cfg.model,
         "provider": cfg.provider,
+        "model_choice": cfg.model_choice_id(),
         "hermes_bin": hermes_bin,
         "hermes_bin_found": bin_ok,
         "acp_library": acp_ok,

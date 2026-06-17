@@ -55,8 +55,8 @@ OpenAI client>)` programmatically.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `APHRODITE_ACP_PROFILE` | `forge` | Hermes profile used when spawning `hermes -p <profile> acp`. |
-| `APHRODITE_ACP_MODEL` | `openai/gpt-4o-mini` | Model component for ACP `provider:model` selection. |
-| `APHRODITE_ACP_PROVIDER` | `openrouter` | Provider component for ACP `provider:model` selection. |
+| `APHRODITE_ACP_MODEL` | (unset) | Optional model override; only used with `APHRODITE_ACP_PROVIDER`. When unset, the relay uses the Hermes profile's configured engine. |
+| `APHRODITE_ACP_PROVIDER` | (unset) | Optional provider override; only used with `APHRODITE_ACP_MODEL`. When unset, the relay uses the Hermes profile's configured engine. |
 | `APHRODITE_ACP_HERMES_BIN` | discovered `hermes` executable | Binary used to spawn the external ACP runtime. |
 | `APHRODITE_ACP_DB` | `<hermes_root>/aphrodite/acp_relay.sqlite3` | SQLite conversation store path. |
 | `APHRODITE_ACP_CWD` | shared Hermes root | Working directory for the ACP subprocess. |
