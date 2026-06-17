@@ -481,6 +481,17 @@ class AcpRelay:
                 cwd=convo["cwd"],
             )
             result = await self._transport(turn_config, message, convo["acp_session_id"])
+            if not str(result.reply or "").strip():
+                # A completed turn with no assistant text means the engine
+                # produced nothing usable — typically an upstream provider error
+                # that Hermes' ACP adapter swallowed into a silent ``end_turn``.
+                # Surface it as a failure instead of recording an empty
+                # "successful" turn (and leave the session id unset so the next
+                # turn starts fresh).
+                raise AcpTransportError(
+                    f"ACP turn produced no assistant reply "
+                    f"(stop_reason={result.stop_reason!r}); the upstream engine likely failed"
+                )
             updated = self._store.record_turn(
                 conversation_id,
                 user_text=message,

@@ -287,6 +287,23 @@ def test_transport_error_propagates(tmp_path):
         asyncio.run(relay.turn(cid, "hi"))
 
 
+def test_turn_raises_on_empty_reply_and_does_not_record(tmp_path):
+    async def empty(config, message, acp_session_id):
+        return TurnResult(reply="   ", stop_reason="end_turn", acp_session_id="S1")
+
+    relay = _relay(tmp_path, empty)
+    cid = relay.create_conversation()["id"]
+    with pytest.raises(AcpTransportError):
+        asyncio.run(relay.turn(cid, "hi"))
+    # An empty turn must not be persisted as a success: no messages recorded,
+    # turn count unchanged, and the session id left unset so the next turn
+    # starts fresh rather than resuming a dead session.
+    stored = relay.get_conversation(cid)
+    assert stored["turns"] == 0
+    assert stored["acp_session_id"] is None
+    assert stored["messages"] == []
+
+
 # --------------------------------------------------------------------------- #
 # HTTP route wiring (FastAPI TestClient against the real app factory)
 # --------------------------------------------------------------------------- #
@@ -375,6 +392,24 @@ def test_http_transport_error_maps_to_502(tmp_path):
             cid = client.post("/acp/conversations", json={}).json()["id"]
             resp = client.post(f"/acp/conversations/{cid}/turns", json={"message": "hi"})
             assert resp.status_code == 502
+    finally:
+        reset_relay()
+
+
+def test_http_empty_reply_maps_to_502(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from aphrodite.app import create_app
+
+    async def empty(config, message, acp_session_id):
+        return TurnResult(reply="", stop_reason="end_turn", acp_session_id="S1")
+
+    configure_relay(_relay(tmp_path, empty))
+    try:
+        with TestClient(create_app()) as client:
+            cid = client.post("/acp/conversations", json={}).json()["id"]
+            resp = client.post(f"/acp/conversations/{cid}/turns", json={"message": "hi"})
+            assert resp.status_code == 502, resp.text
     finally:
         reset_relay()
 
