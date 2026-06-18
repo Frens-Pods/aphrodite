@@ -56,6 +56,56 @@ you install it into the same environment and list `my_module` in
 `APHRODITE_MODULES`. Use `examples/hello_adapter/` as a copy-paste worked
 reference when you want to compare the scaffold with a complete tiny adapter.
 
+## Edit & debug loop
+
+After scaffolding, edit `my_module/my_module.py` and add an action while keeping
+the generated `ping` branch:
+
+```python
+def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str, Any]:
+    if action == "ping":
+        return {"ok": True, "action": action, "message": "my_module is alive"}
+    if action == "echo":
+        return {"ok": True, "action": action, "echo": payload[0] if payload else ""}
+    return {"ok": False, "action": action, "error": f"unknown action: {action}"}
+```
+
+Then reinstall the package into the same environment Aphrodite uses and dispatch
+one custom id:
+
+```bash
+pip install -e my_module
+export APHRODITE_MODULES=my_module
+aphrodite dispatch-test my_module:v1:echo:hello
+```
+
+Expected JSON shape:
+
+```json
+{
+  "ok": true,
+  "system": "my_module",
+  "version": "v1",
+  "action": "echo",
+  "payload": ["hello"],
+  "result": {
+    "ok": true,
+    "action": "echo",
+    "echo": "hello"
+  }
+}
+```
+
+If `dispatch-test` exits nonzero, read the printed JSON first; router failures
+and adapter results with `"ok": false` both make the command fail.
+
+## Troubleshooting
+
+If dispatch shows `ok: false` with an error that the module adapter is
+configured but not installed, you forgot `pip install -e` in the environment
+running Aphrodite. Run `aphrodite modules` to compare configured, discovered,
+active, missing, and available adapters.
+
 To wire an adapter by hand:
 
 1. Implement a dispatch handler in your module:

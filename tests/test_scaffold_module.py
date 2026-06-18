@@ -26,6 +26,15 @@ def test_scaffold_module_creates_adapter_package(tmp_path):
     assert (target / "pyproject.toml").exists()
     assert (target / "README.md").exists()
     assert 'my_module = "my_module:handle"' in (target / "pyproject.toml").read_text(encoding="utf-8")
+    assert payload["next_steps"] == [
+        f"pip install -e {target}",
+        "export APHRODITE_MODULES=my_module",
+        "export APHRODITE_MODULES=image_gen,skillopt,acp_relay,my_module  # keep Aphrodite's defaults too",
+        "aphrodite dispatch-test my_module:v1:ping",
+    ]
+    readme = (target / "README.md").read_text(encoding="utf-8")
+    assert "`export APHRODITE_MODULES=my_module`" in readme
+    assert '"result": {"ok": true, "action": "ping", "message": "my_module is alive"}' in readme
 
 
 def test_generated_adapter_handle_ping_and_unknown_action(tmp_path):
@@ -58,7 +67,9 @@ def test_invalid_module_name_returns_error_and_cli_failure(tmp_path, monkeypatch
 
     monkeypatch.setattr(cli, "maybe_notify_update", lambda command: None)
 
-    assert scaffold_module("Bad-Name", tmp_path)["ok"] is False
+    invalid = scaffold_module("Bad-Name", tmp_path)
+    assert invalid["ok"] is False
+    assert invalid["hint"] == "try: bad_name"
     assert cli.main(["new-module", "Bad-Name", "--dir", str(tmp_path)]) == 1
 
 
@@ -70,3 +81,4 @@ def test_existing_target_is_not_clobbered(tmp_path):
 
     assert second["ok"] is False
     assert "already exists" in second["error"]
+    assert second["fix"] == "Choose a different name, pass --dir <empty-dir>, or remove the existing directory if you no longer need it."

@@ -759,4 +759,22 @@ def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str
         return get_evaluation(payload[0])
     if action in {"get_run", "get_eval", "diff", "details", "logs", "evaluation"}:
         return {"ok": False, "error_type": "invalid_argument", "error": f"{action} requires a run_id or eval_id payload", "action": action}
-    return {"ok": False, "error_type": "unsupported_action", "error": "unsupported skillopt action", "action": action}
+    return {
+        "ok": False,
+        "error": f"unknown action: {action}",
+        "supported_actions": [
+            "details",
+            "diff",
+            "evaluation",
+            "get_eval",
+            "get_run",
+            "list_evals",
+            "list_runs",
+            "logs",
+            "status",
+        ],
+        "examples": [
+            "aphrodite dispatch-test skillopt:v1:status",
+            "aphrodite dispatch-test skillopt:v1:list_runs",
+        ],
+    }

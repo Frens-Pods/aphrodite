@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .config import DEFAULT_MODULES
+from .config import DEFAULT_MODULES, load_config
 from .readiness import http_runtime_observability, mcp_readiness, production_endpoint_preflight, service_readiness
 from .update import latest_version_nudge
 
@@ -42,6 +42,7 @@ REQUIRED_REPO_ARTIFACTS = [
 def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
     root_path = Path(root or Path(__file__).resolve().parents[1]).resolve()
     is_source_tree = (root_path / "pyproject.toml").exists()
+    config = load_config()
     required = list(REQUIRED_MODULE_FILES)
     if is_source_tree:
         required.extend(REQUIRED_REPO_ARTIFACTS)
@@ -57,6 +58,7 @@ def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
         "required_files_present": present,
         "missing": missing,
         "env": _env_readiness(),
+        "warnings": list(config.warnings),
         "mcp": mcp_readiness(root_path),
         "service_readiness": service_readiness(root_path),
         "http_observability": http_runtime_observability(),
@@ -72,15 +74,18 @@ def _env_readiness() -> dict[str, dict[str, Any]]:
             "configured": bool(public_key),
             "required_for": "production Discord HTTP interactions",
             "expected": "Discord application public key as 64 hex characters",
+            "fix": "cp config/aphrodite.env.example config/aphrodite.env, set APHRODITE_DISCORD_PUBLIC_KEY=<your Discord app public key>, then run aphrodite preflight --production",
         },
         "APHRODITE_HOST": {
             "configured": bool(str(os.environ.get("APHRODITE_HOST") or "").strip()),
             "default": "127.0.0.1",
             "required_for": "serving Aphrodite on a non-default interface",
+            "fix": "Set APHRODITE_HOST=<host> in config/aphrodite.env or the process environment when Aphrodite must bind somewhere other than 127.0.0.1.",
         },
         "APHRODITE_PORT": {
             "configured": bool(str(os.environ.get("APHRODITE_PORT") or "").strip()),
             "default": "9079",
             "required_for": "serving Aphrodite on a non-default port",
+            "fix": "Set APHRODITE_PORT=<integer> in config/aphrodite.env or the process environment, e.g. APHRODITE_PORT=9079.",
         },
     }

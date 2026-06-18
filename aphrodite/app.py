@@ -41,11 +41,9 @@ def build_router() -> DispatchRouter:
 def _placeholder_handler(system: str):
     def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str, Any]:
         return {
-            "handled": False,
-            "system": system,
-            "action": action,
-            "payload": payload,
-            "message": "module adapter not implemented yet",
+            "ok": False,
+            "error": f"module adapter '{system}' is configured but not installed",
+            "hint": f"pip install -e <your-module-dir> into this environment, then set APHRODITE_MODULES to include '{system}' (run: aphrodite modules)",
         }
 
     return handle

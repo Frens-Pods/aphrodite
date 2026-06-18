@@ -48,9 +48,8 @@ def test_unknown_module_uses_placeholder(monkeypatch):
     assert router.systems == ["bogus"]
     assert res["ok"] is True
     assert res["result"] == {
-        "handled": False,
-        "system": "bogus",
-        "action": "ping",
-        "payload": [],
-        "message": "module adapter not implemented yet",
+        "ok": False,
+        "error": "module adapter 'bogus' is configured but not installed",
+        "hint": "pip install -e <your-module-dir> into this environment, then set "
+        "APHRODITE_MODULES to include 'bogus' (run: aphrodite modules)",
     }

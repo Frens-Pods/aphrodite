@@ -1,6 +1,6 @@
 # Deployment
 
-Aphrodite is a FastAPI sidecar. It can run directly with Uvicorn for development or behind a service manager and reverse proxy for production.
+Aphrodite is a FastAPI sidecar. It can run directly with `aphrodite serve` for development or behind a service manager and reverse proxy for production.
 
 For running Aphrodite in a container instead, see
 [Container deployment](deployment-docker.md).
@@ -8,6 +8,12 @@ For running Aphrodite in a container instead, see
 ## Development server
 
 From the repository root:
+
+```sh
+aphrodite serve
+```
+
+Advanced/manual Uvicorn equivalent:
 
 ```sh
 uvicorn aphrodite.app:create_app --factory --host 127.0.0.1 --port 9079

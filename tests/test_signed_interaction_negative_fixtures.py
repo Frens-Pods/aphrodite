@@ -89,7 +89,7 @@ def test_signed_route_rejects_malformed_and_unknown_component_payloads_without_p
     cases = [
         (_component_payload("skillopt"), "custom_id must be"),
         (_component_payload("unknown:v1:approve:default:t_123"), "unknown system"),
-        (_component_payload("skillopt:v1:archive:default:t_123", user_id="user-allowed"), "unsupported skillopt action"),
+        (_component_payload("skillopt:v1:archive:default:t_123", user_id="user-allowed"), "unknown action: archive"),
         ({**_component_payload("skillopt:v1:status", user_id="user-allowed"), "data": {}}, "missing custom_id"),
     ]
 

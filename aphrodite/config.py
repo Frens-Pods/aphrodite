@@ -15,14 +15,20 @@ class AphroditeConfig:
     modules: tuple[str, ...] = tuple(DEFAULT_MODULES)
     cors_origins: tuple[str, ...] = ()
     no_core_policy: str = "no-hermes-core"
+    warnings: tuple[str, ...] = ()
 
 
 def load_config() -> AphroditeConfig:
     port_raw = os.environ.get("APHRODITE_PORT", "9079")
+    warnings: list[str] = []
     try:
         port = int(port_raw)
     except ValueError:
         port = 9079
+        warnings.append(
+            f"APHRODITE_PORT={port_raw!r} is not a valid integer; using default {port}. "
+            "Set APHRODITE_PORT to an integer, e.g. 9079."
+        )
     modules_raw = os.environ.get("APHRODITE_MODULES", "").strip()
     modules = tuple(
         part.strip() for part in modules_raw.split(",") if part.strip()
@@ -37,4 +43,5 @@ def load_config() -> AphroditeConfig:
         hermes_home=Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")).expanduser(),
         modules=modules,
         cors_origins=cors_origins,
+        warnings=tuple(warnings),
     )

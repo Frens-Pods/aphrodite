@@ -7,6 +7,13 @@ from typing import Any
 MODULE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 INVALID_NAME_MESSAGE = "use lowercase letters, digits, underscores, starting with a letter"
 
+
+def _suggest_module_name(name: str) -> str:
+    suggestion = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_")
+    suggestion = re.sub(r"_+", "_", suggestion)
+    suggestion = re.sub(r"^[^a-z]+", "", suggestion)
+    return suggestion or "my_module"
+
 MODULE_TEMPLATE = '''"""Aphrodite module adapter: __NAME__.
 
 Aphrodite discovers this module through the `aphrodite.adapters` entry point
@@ -60,20 +67,34 @@ Aphrodite and is discovered through the `aphrodite.adapters` entry point.
 ## Try it
 
 1. `pip install -e .` into the same environment as Aphrodite
-2. Add `__NAME__` to `APHRODITE_MODULES`
-3. Try it: `aphrodite dispatch-test __NAME__:v1:ping`
+2. `export APHRODITE_MODULES=__NAME__`
+3. `aphrodite dispatch-test __NAME__:v1:ping`
 
+Expected output includes the ping response under `result`:
+
+```json
+{"ok": true, "result": {"ok": true, "action": "ping", "message": "__NAME__ is alive"}}
+```
 Then edit `handle()` to add your own actions.
 '''
 
 
 def scaffold_module(name: str, dest: str | Path = ".") -> dict[str, Any]:
     if not MODULE_NAME_RE.fullmatch(name):
-        return {"ok": False, "error": f"invalid module name: {name}; {INVALID_NAME_MESSAGE}"}
+        suggestion = _suggest_module_name(name)
+        return {
+            "ok": False,
+            "error": f"invalid module name: {name}; {INVALID_NAME_MESSAGE}",
+            "hint": f"try: {suggestion}",
+        }
 
     target = Path(dest).expanduser().resolve() / name
     if target.exists():
-        return {"ok": False, "error": f"{target} already exists"}
+        return {
+            "ok": False,
+            "error": f"{target} already exists",
+            "fix": "Choose a different name, pass --dir <empty-dir>, or remove the existing directory if you no longer need it.",
+        }
 
     target.mkdir(parents=True)
     files = {
@@ -94,7 +115,8 @@ def scaffold_module(name: str, dest: str | Path = ".") -> dict[str, Any]:
         "created": created,
         "next_steps": [
             f"pip install -e {target}",
-            f"add '{name}' to APHRODITE_MODULES",
+            f"export APHRODITE_MODULES={name}",
+            f"export APHRODITE_MODULES=image_gen,skillopt,acp_relay,{name}  # keep Aphrodite's defaults too",
             f"aphrodite dispatch-test {name}:v1:ping",
         ],
     }

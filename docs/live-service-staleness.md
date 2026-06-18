@@ -15,10 +15,15 @@ If `service_readiness.live.available=false`, the service may be absent, systemd 
 From the repository root:
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python scripts/aphrodite doctor
-PYTHONDONTWRITEBYTECODE=1 python scripts/aphrodite endpoint-preflight
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/aphrodite doctor
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/aphrodite endpoint-preflight
 bash scripts/verify.sh
 ```
+
+Older docs and readiness assertions may still mention
+`PYTHONDONTWRITEBYTECODE=1 python scripts/aphrodite doctor`; prefer the
+`.venv/bin/python` form above so the command works when bare `python` is not on
+`PATH`.
 
 These checks may report `service_readiness.live.stale_vs_disk`; they must not resolve it.
 
@@ -49,6 +54,6 @@ Rollback also needs named approval unless a live service is already proven broke
 
 ## Where this appears
 
-- `python scripts/aphrodite doctor` includes `service_readiness.live.staleness_guidance` when systemd status is available.
+- `.venv/bin/python scripts/aphrodite doctor` includes `service_readiness.live.staleness_guidance` when systemd status is available.
 - `/status` includes the same `service_readiness` payload after approved service activation.
 - `docs/deployment.md` and `docs/production-endpoint-preflight.md` point back here for interpretation.

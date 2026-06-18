@@ -56,6 +56,8 @@ class DispatchRouter:
                 "version": parsed.version,
                 "action": parsed.action,
                 "payload": parsed.payload,
+                "known_systems": sorted(self.systems),
+                "fix": "Set APHRODITE_MODULES to include this system, or install its adapter package; run `aphrodite modules` to see what is discovered.",
             }
         if parsed.version not in _SUPPORTED_VERSIONS:
             return {
@@ -66,6 +68,7 @@ class DispatchRouter:
                 "action": parsed.action,
                 "payload": parsed.payload,
                 "supported_versions": sorted(_SUPPORTED_VERSIONS),
+                "example": f"{parsed.system}:{sorted(_SUPPORTED_VERSIONS)[0]}:{parsed.action}",
             }
         try:
             result = handler(parsed.action, parsed.payload, context or {})
@@ -77,6 +80,7 @@ class DispatchRouter:
                 "version": parsed.version,
                 "action": parsed.action,
                 "payload": parsed.payload,
+                "hint": f"adapter '{parsed.system}' raised while handling '{parsed.action}'; check that handler's code and re-run aphrodite dispatch-test.",
             }
         return {
             "ok": True,

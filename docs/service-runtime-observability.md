@@ -9,7 +9,7 @@ Run only after `aphrodite.service` is already running under an approved activati
 ```bash
 curl -fsS http://127.0.0.1:9079/health
 curl -fsS http://127.0.0.1:9079/status
-python scripts/aphrodite doctor
+.venv/bin/python scripts/aphrodite doctor
 ```
 
 Expected `/health` shape:

@@ -320,4 +320,13 @@ def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str
             "sizes": list(SIZES),
             "aspect_ratios": list(SIZES),
         }
-    return {"handled": False, "module": "image_gen", "action": action, "message": "use POST /image/generate"}
+    return {
+        "ok": False,
+        "error": f"unknown action: {action}",
+        "supported_actions": ["aspect_ratios", "models", "sizes", "status"],
+        "examples": [
+            "aphrodite dispatch-test image_gen:v1:status",
+            "aphrodite dispatch-test image_gen:v1:models",
+            "POST /image/generate",
+        ],
+    }

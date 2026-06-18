@@ -10,6 +10,23 @@ only through documented plugin APIs, Discord/webhook traffic, FastAPI routes,
 static files, cron/systemd, and the local filesystem. See
 [`NO_CORE_POLICY.md`](NO_CORE_POLICY.md) for the design rule.
 
+Hermes = the external local agent runtime Aphrodite never patches.
+MCP = Model Context Protocol stdio server for tool clients.
+ACP = Agent Client Protocol relay for conversations.
+
+## Start here (local in 5 commands)
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/Advenaa/aphrodite/main/install.sh | bash
+aphrodite serve &
+curl --retry 20 --retry-delay 1 --retry-connrefused -fsS http://127.0.0.1:9079/health
+aphrodite new-module demo
+aphrodite modules
+```
+
+The background server keeps running; bring it back with `fg`, then press Ctrl-C
+when you are done.
+
 ## Features
 
 - **Discord interaction endpoint** with fail-closed Ed25519 signature
@@ -26,6 +43,8 @@ static files, cron/systemd, and the local filesystem. See
   and read-only deployment preflight checks.
 - **Optional MCP server** (`aphrodite/mcp_server.py`) exposing skillopt tools
   over stdio.
+
+If you see references to `nudge`/`readsurface`/`soulglass`/`kanban`/`nixie`, those are operator-private adapters; public users do not need them — unknown configured names become harmless placeholders (see `aphrodite modules`).
 
 ### Write your own module
 
@@ -49,9 +68,9 @@ Or from a clone:
 
 ```bash
 git clone https://github.com/Advenaa/aphrodite && cd aphrodite
-python -m venv .venv && . .venv/bin/activate
-pip install .                  # users
-pip install -e ".[dev]"        # contributors (editable + test deps)
+python3 -m venv .venv && . .venv/bin/activate
+.venv/bin/python -m pip install .                  # users
+.venv/bin/python -m pip install -e ".[dev]"        # contributors (editable + test deps)
 ```
 
 Requires Python 3.10+. Runtime dependencies: `fastapi`, `pynacl`, `uvicorn`. Extras: `mcp` (MCP server), `acp` (ACP relay transport).
@@ -85,34 +104,43 @@ pip install --upgrade "aphrodite-sidecar[mcp,acp] @ git+https://github.com/Adven
 
 ```bash
 # Run the service (development)
-uvicorn aphrodite.app:create_app --factory --host 127.0.0.1 --port 9079
+aphrodite serve
 
 # In another shell
 curl -fsS http://127.0.0.1:9079/health
 curl -fsS http://127.0.0.1:9079/status
 ```
 
+Advanced/manual Uvicorn equivalent:
+
+```bash
+uvicorn aphrodite.app:create_app --factory --host 127.0.0.1 --port 9079
+```
+
 ## CLI
 
-The `aphrodite` console script (and `python scripts/aphrodite`) exposes:
+The `aphrodite` console script (and `.venv/bin/python scripts/aphrodite` from a clone) exposes:
 
 | Command | Purpose |
 | --- | --- |
+| `serve [--host H] [--port P] [--reload]` | Start the FastAPI service using config defaults unless overridden. |
+| `modules` | Print configured, discovered, active, missing, and available module adapters. |
+| `new-module <name> [--dir DIR]` | Scaffold a ready-to-edit third-party module adapter package. |
 | `health` | Print the health payload. |
 | `doctor` | Report required files, env, MCP and service readiness. |
 | `preflight [--production]` | Report whether the service is ready to activate, without starting it. |
 | `endpoint-preflight` | Read-only readiness for the public Discord interaction endpoint. |
-| `dispatch-test <custom_id>` | Dispatch a custom id through the configured router. |
-| version | Print the installed Aphrodite version. |
-| update [--check] | Self-upgrade the install and print before/after versions; --check only compares. |
+| `dispatch-test <custom_id>` | Dispatch a custom id through the configured router; exits nonzero when routing or handler `result.ok` fails. |
+| `version` | Print the installed Aphrodite version. |
+| `update [--check]` | Self-upgrade the install and print before/after versions; `--check` only compares. |
 
 ## MCP server
 
 Aphrodite ships an optional [MCP](https://modelcontextprotocol.io) server exposing the review-gated SkillOpt tools plus read-only image_gen and acp_relay metadata over stdio. It requires the `mcp` extra:
 
 ```bash
-pip install "aphrodite-sidecar[mcp] @ git+https://github.com/Advenaa/aphrodite"
-python -m aphrodite.mcp_server      # stdio transport
+.venv/bin/python -m pip install "aphrodite-sidecar[mcp] @ git+https://github.com/Advenaa/aphrodite"
+.venv/bin/python -m aphrodite.mcp_server      # stdio transport from a clone
 ```
 
 Register it with an MCP client by pointing the client at your venv's Python:
@@ -157,14 +185,20 @@ See [`docs/configuration.md`](docs/configuration.md) for the full list.
 
 ## Documentation
 
-- [Configuration](docs/configuration.md)
-- [Deployment](docs/deployment.md)
-- [Container deployment](docs/deployment-docker.md)
-- [Discord interactions](docs/discord-interactions.md)
-- [Module adapters](docs/module-adapters.md)
-- [ACP relay](docs/acp-relay.md)
-- [Private overlay](docs/private-overlay.md)
-- [Changelog](CHANGELOG.md)
+| If you want to… | Read | Audience |
+| --- | --- | --- |
+| configure host, port, modules, CORS, Discord, or ACP auth | [Configuration](docs/configuration.md) | operator |
+| deploy on a host with systemd and a reverse proxy | [Deployment](docs/deployment.md) | operator |
+| run the sidecar in Docker or Compose | [Container deployment](docs/deployment-docker.md) | operator |
+| understand signed Discord interaction intake | [Discord interactions](docs/discord-interactions.md) | operator, contributor |
+| write or troubleshoot a module adapter | [Module adapters](docs/module-adapters.md) | author |
+| use the ACP conversation relay | [ACP relay](docs/acp-relay.md) | operator, author |
+| keep private deployment material out of the public repo | [Private overlay](docs/private-overlay.md) | operator, contributor |
+| interpret live service staleness reports | [Live service staleness](docs/live-service-staleness.md) | operator |
+| preflight the public Discord endpoint before cutover | [Production endpoint preflight](docs/production-endpoint-preflight.md) | operator |
+| observe a running service after approved activation | [Service runtime observability](docs/service-runtime-observability.md) | operator |
+| maintain negative signed-interaction fixtures | [Signed interaction negative fixtures](docs/signed-interaction-negative-fixtures.md) | contributor |
+| see release history | [Changelog](CHANGELOG.md) | operator, contributor |
 
 ## Deployment
 
@@ -188,7 +222,7 @@ reverse proxy to front. See [`docs/deployment-docker.md`](docs/deployment-docker
 ## Development
 
 ```bash
-python -m pytest tests -q     # run the test suite
+.venv/bin/python -m pytest tests -q     # run the test suite
 bash scripts/verify.sh        # compile, focused packs, full suite, read-only command smoke
 ```
 

@@ -3,14 +3,14 @@
 ## Setup
 
 ```sh
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev,mcp]"
+python3 -m venv .venv && . .venv/bin/activate
+.venv/bin/python -m pip install -e ".[dev,mcp]"
 ```
 
 ## Running tests
 
 ```sh
-python -m pytest tests -q
+.venv/bin/python -m pytest tests -q
 ```
 
 ## Full local check

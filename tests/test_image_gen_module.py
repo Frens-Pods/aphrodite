@@ -171,12 +171,11 @@ def test_dispatch_aspect_ratios_alias_lists_supported_size_keys():
 def test_dispatch_unsupported_action_remains_unhandled():
     data = image_gen.handle("generate", ["ignored"], {"ignored": True})
 
-    assert data == {
-        "handled": False,
-        "module": "image_gen",
-        "action": "generate",
-        "message": "use POST /image/generate",
-    }
+    assert data["ok"] is False
+    assert data["error"] == "unknown action: generate"
+    assert data["supported_actions"] == ["aspect_ratios", "models", "sizes", "status"]
+    assert "aphrodite dispatch-test image_gen:v1:status" in data["examples"]
+    assert "POST /image/generate" in data["examples"]
 
 
 def test_dispatch_router_wraps_new_read_only_actions():

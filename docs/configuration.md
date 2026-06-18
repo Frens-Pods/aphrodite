@@ -1,6 +1,11 @@
 # Configuration
 
-Aphrodite reads runtime configuration from environment variables. For a local service, copy the example file and edit the private copy:
+Aphrodite reads runtime configuration from environment variables. You do not
+need an env file for a local `/health` trial; the defaults bind to
+`127.0.0.1:9079` with the public module set.
+
+Copy the example file only when you need non-default host/port, module
+selection, CORS, production Discord verification, or ACP auth:
 
 ```sh
 cp config/aphrodite.env.example config/aphrodite.env

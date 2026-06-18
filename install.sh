@@ -15,6 +15,22 @@ main() {
     exit 1
   fi
 
+  if ! python3 -c 'import venv' >/dev/null 2>&1; then
+    echo "Aphrodite needs Python venv support before it can create its private environment." >&2
+    case "$(uname -s)" in
+      Darwin)
+        echo "On macOS with Homebrew, run: brew install python" >&2
+        ;;
+      Linux)
+        echo "On Debian/Ubuntu, run: sudo apt install python3-venv" >&2
+        ;;
+      *)
+        echo "Install the Python venv package for your OS, then run this installer again." >&2
+        ;;
+    esac
+    exit 1
+  fi
+
   local INSTALL_ROOT="${APHRODITE_HOME:-$HOME/.local/share/aphrodite}"
   local VENV="$INSTALL_ROOT/venv"
   local BIN_DIR="${APHRODITE_BIN_DIR:-$HOME/.local/bin}"
@@ -47,15 +63,22 @@ main() {
   mv "$tmp" "$BIN"
   trap - EXIT
 
+  "$BIN" version 2>/dev/null || true
+  echo "Aphrodite is ready."
   case ":$PATH:" in
-    *":$BIN_DIR:"*) ;;
+    *":$BIN_DIR:"*)
+      echo "Next: aphrodite serve"
+      echo "Then: aphrodite doctor"
+      ;;
     *)
-      echo "Note: $BIN_DIR is not on your PATH yet. Add it to your shell profile or restart your terminal so 'aphrodite' works everywhere." >&2
+      echo "Note: $BIN_DIR is not on your PATH yet." >&2
+      echo "Add this to your shell profile:" >&2
+      echo "  export PATH=\"$BIN_DIR:\$PATH\"" >&2
+      echo "Works right now:" >&2
+      echo "  \"$BIN\" serve" >&2
+      echo "  \"$BIN\" doctor" >&2
       ;;
   esac
-
-  "$BIN" version 2>/dev/null || true
-  echo "Aphrodite is ready. Next: aphrodite doctor"
 }
 
 main "$@"

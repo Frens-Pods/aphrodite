@@ -69,6 +69,7 @@ def preflight_payload(root: Path | str | None = None, production: bool = False) 
     ):
         warnings.append("No Aphrodite Discord allowlist env configured; Kanban approve/deny will stay unauthorized")
 
+    blocking = list(dict.fromkeys(blocking))
     python_executable = Path(sys.executable).resolve()
     return {
         "ok": not blocking,

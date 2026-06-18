@@ -388,12 +388,10 @@ def test_dispatch_unsupported_action_points_to_http_routes_without_turning(tmp_p
     try:
         result = handle("turn", ["ignored", "hello"], {})
         assert result["ok"] is False
-        assert result["handled"] is False
-        assert result["system"] == "acp_relay"
-        assert result["error_type"] == "unsupported_action"
-        assert result["route"] == "/acp"
-        assert "HTTP routes" in result["message"]
-        assert result["routes"]["turns"] == "/acp/conversations/{id}/turns"
+        assert result["error"] == "unknown action: turn"
+        assert result["supported_actions"] == ["get", "health", "list", "readiness", "status"]
+        assert "aphrodite dispatch-test acp_relay:v1:status" in result["examples"]
+        assert "POST /acp/conversations/{id}/turns" in result["examples"]
         assert fake.calls == []
     finally:
         reset_relay()
