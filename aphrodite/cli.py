@@ -8,6 +8,7 @@ from .app import build_router, health_payload
 from .doctor import doctor_payload
 from .preflight import preflight_payload
 from .readiness import production_endpoint_preflight
+from .scaffold import scaffold_module
 from .update import maybe_notify_update, update_payload, version_payload
 
 
@@ -24,6 +25,9 @@ def main(argv: list[str] | None = None) -> int:
     preflight.add_argument("--production", action="store_true")
     dispatch = sub.add_parser("dispatch-test")
     dispatch.add_argument("custom_id")
+    new_module = sub.add_parser("new-module")
+    new_module.add_argument("name")
+    new_module.add_argument("--dir", default=".")
     args = parser.parse_args(argv)
     maybe_notify_update(args.command)
 
@@ -51,6 +55,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "update":
         payload = update_payload(check=bool(getattr(args, "check", False)))
+        print(json.dumps(payload, indent=2))
+        return 0 if payload["ok"] else 1
+    if args.command == "new-module":
+        payload = scaffold_module(args.name, getattr(args, "dir", "."))
         print(json.dumps(payload, indent=2))
         return 0 if payload["ok"] else 1
     return 2

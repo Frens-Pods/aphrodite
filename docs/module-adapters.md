@@ -40,6 +40,24 @@ deterministic.
 
 ## Adding an adapter
 
+The quickest path is to let Aphrodite scaffold the package:
+
+```bash
+aphrodite new-module my_module
+pip install -e my_module
+export APHRODITE_MODULES=my_module
+aphrodite dispatch-test my_module:v1:ping
+```
+
+`aphrodite new-module my_module` creates a ready-to-edit `my_module/` folder
+with `my_module.py`, `pyproject.toml`, and a README. The generated package
+publishes an `aphrodite.adapters` entry point, so Aphrodite discovers it after
+you install it into the same environment and list `my_module` in
+`APHRODITE_MODULES`. Use `examples/hello_adapter/` as a copy-paste worked
+reference when you want to compare the scaffold with a complete tiny adapter.
+
+To wire an adapter by hand:
+
 1. Implement a dispatch handler in your module:
 
 ```python

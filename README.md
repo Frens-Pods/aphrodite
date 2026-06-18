@@ -27,6 +27,14 @@ static files, cron/systemd, and the local filesystem. See
 - **Optional MCP server** (`aphrodite/mcp_server.py`) exposing skillopt tools
   over stdio.
 
+### Write your own module
+
+Modules are ordinary Python plugins discovered through the
+`aphrodite.adapters` entry point, so you can add one without editing Aphrodite
+core. Start fastest with `aphrodite new-module <name>`, or copy the worked
+starter in `examples/hello_adapter/`; full details live in
+[`docs/module-adapters.md`](docs/module-adapters.md).
+
 ## Install
 
 Install from GitHub (no clone needed):
