@@ -514,7 +514,10 @@ def create_eval(payload: dict[str, Any]) -> dict[str, Any]:
         if eval_dir.exists() and not bool(payload.get("replace")):
             return {"ok": False, "error_type": "exists", "error": "eval_id already exists; pass replace=true", "eval_id": eval_id}
         eval_dir.mkdir(parents=True, exist_ok=True)
-        manifest = dict(payload.get("manifest") or {})
+        raw_manifest = payload.get("manifest") or {}
+        if not isinstance(raw_manifest, dict):
+            raise ValueError("manifest must be an object")
+        manifest = dict(raw_manifest)
         manifest.update({
             "eval_id": eval_id,
             "skill_family": str(payload.get("skill_family") or manifest.get("skill_family") or eval_id),

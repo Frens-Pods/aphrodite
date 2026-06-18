@@ -63,8 +63,10 @@ def _context_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(user, dict):
         user = {}
     message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
-    component_values = [str(value) for value in (data.get("values") or []) if str(value)]
-    role_ids = [str(role) for role in (member.get("roles") or []) if str(role)]
+    _values = data.get("values")
+    component_values = [str(value) for value in _values if str(value)] if isinstance(_values, (list, tuple)) else []
+    _roles = member.get("roles")
+    role_ids = [str(role) for role in _roles if str(role)] if isinstance(_roles, (list, tuple)) else []
     user_name = str(
         user.get("global_name")
         or user.get("display_name")

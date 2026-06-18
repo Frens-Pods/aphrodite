@@ -198,3 +198,34 @@ def test_discord_component_payload_preserves_select_menu_values():
     assert response["aphrodite"]["result"]["message"] == "task:23"
     assert response["aphrodite"]["result"]["raw_values"] == ["task:23"]
     assert response["data"]["content"] == "task:23"
+
+
+def test_discord_component_payload_ignores_malformed_values_and_roles():
+    from aphrodite.discord.intake import handle_interaction_payload
+    from aphrodite.router import DispatchRouter
+
+    router = DispatchRouter()
+    router.register(
+        "demo",
+        lambda action, payload, context: {
+            "ok": True,
+            "message": "captured",
+            "component_values": context.get("component_values"),
+            "role_ids": context.get("role_ids"),
+        },
+    )
+
+    response = handle_interaction_payload(
+        {
+            "type": 3,
+            "data": {"custom_id": "demo:v1:select-token", "values": 123},
+            "member": {"roles": 123, "user": {"id": "1", "username": "u"}},
+        },
+        router,
+    )
+
+    assert response["type"] == 4
+    assert response["data"]["flags"] == 64
+    assert response["data"]["content"] == "captured"
+    assert response["aphrodite"]["result"]["component_values"] == []
+    assert response["aphrodite"]["result"]["role_ids"] == []

@@ -14,12 +14,14 @@ sys.path.insert(0, str(ROOT))
 from aphrodite.modules.acp_relay import (  # noqa: E402
     AcpRelay,
     AcpTransportError,
+    DEFAULT_TURN_TIMEOUT,
     RelayConfig,
     TurnResult,
     acp_transport,
     configure_relay,
     handle,
     readiness,
+    load_relay_config,
     reset_relay,
 )
 
@@ -81,6 +83,16 @@ def test_command_uses_profile_and_acp_subcommand():
         hermes_bin="hermes",
     )
     assert explicit.model_choice_id() == "openrouter:openai/gpt-4o-mini"
+
+
+def test_load_relay_config_parses_turn_timeout_env(monkeypatch):
+    monkeypatch.setenv("APHRODITE_ACP_TURN_TIMEOUT", "bad")
+    cfg = load_relay_config()
+    assert cfg.turn_timeout == DEFAULT_TURN_TIMEOUT
+
+    monkeypatch.setenv("APHRODITE_ACP_TURN_TIMEOUT", "12.5")
+    cfg = load_relay_config()
+    assert cfg.turn_timeout == 12.5
 
 
 def test_model_choice_id_requires_both_provider_and_model():

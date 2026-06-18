@@ -52,23 +52,22 @@ def test_modules_cli_prints_inventory_payload(monkeypatch, capsys):
     import aphrodite.cli as cli
 
     monkeypatch.setattr(cli, "maybe_notify_update", lambda command: None)
-    monkeypatch.setattr(
-        cli,
-        "modules_payload",
-        lambda: {
-            "ok": True,
-            "configured": ["skillopt", "missing_one"],
-            "discovered": ["skillopt"],
-            "active": ["skillopt"],
-            "missing": ["missing_one"],
-            "available": [],
-            "hint": "pip install -e <your-module-dir>; set APHRODITE_MODULES",
-        },
-    )
+    inventory = {
+        "ok": True,
+        "configured": ["skillopt", "missing_one"],
+        "discovered": ["skillopt"],
+        "active": ["skillopt"],
+        "missing": ["missing_one"],
+        "available": [],
+        "hint": "pip install -e <your-module-dir>; set APHRODITE_MODULES",
+    }
+    monkeypatch.setattr(cli, "modules_payload", lambda: inventory)
 
     assert cli.main(["modules"]) == 0
 
-    payload = json.loads(capsys.readouterr().out)
+    raw = capsys.readouterr().out
+    assert raw == json.dumps(inventory, indent=2) + "\n"
+    payload = json.loads(raw)
     assert payload["configured"] == ["skillopt", "missing_one"]
     assert payload["discovered"] == ["skillopt"]
     assert payload["missing"] == ["missing_one"]
@@ -159,19 +158,18 @@ def test_modules_json_flag_prints_json(monkeypatch, capsys):
     import aphrodite.cli as cli
 
     monkeypatch.setattr(cli, "maybe_notify_update", lambda command: None)
-    monkeypatch.setattr(
-        cli,
-        "modules_payload",
-        lambda: {
-            "ok": True,
-            "configured": ["skillopt"],
-            "discovered": ["skillopt"],
-            "active": ["skillopt"],
-            "missing": [],
-            "available": [],
-            "hint": "All configured modules are installed.",
-        },
-    )
+    inventory = {
+        "ok": True,
+        "configured": ["skillopt"],
+        "discovered": ["skillopt"],
+        "active": ["skillopt"],
+        "missing": [],
+        "available": [],
+        "hint": "All configured modules are installed.",
+    }
+    monkeypatch.setattr(cli, "modules_payload", lambda: inventory)
 
     assert cli.main(["modules", "--json"]) == 0
-    assert json.loads(capsys.readouterr().out)["active"] == ["skillopt"]
+    raw = capsys.readouterr().out
+    assert raw == json.dumps(inventory, indent=2) + "\n"
+    assert json.loads(raw)["active"] == ["skillopt"]

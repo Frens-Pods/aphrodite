@@ -60,6 +60,13 @@ def _env(name: str, default: str) -> str:
     raw = raw.strip()
     return raw or default
 
+def _float_env(name: str, default: float) -> float:
+    raw = _env(name, str(default))
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return default
+
 
 def _flag(name: str, default: bool) -> bool:
     raw = os.environ.get(name)
@@ -132,7 +139,7 @@ def load_relay_config(**overrides: Any) -> RelayConfig:
         provider=_env("APHRODITE_ACP_PROVIDER", DEFAULT_PROVIDER),
         hermes_bin=_resolve_hermes_bin(),
         cwd=_default_cwd(),
-        turn_timeout=float(_env("APHRODITE_ACP_TURN_TIMEOUT", str(DEFAULT_TURN_TIMEOUT))),
+        turn_timeout=_float_env("APHRODITE_ACP_TURN_TIMEOUT", DEFAULT_TURN_TIMEOUT),
         db_path=_default_db_path(),
     )
     clean = {k: v for k, v in overrides.items() if v is not None}

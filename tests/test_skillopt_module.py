@@ -341,6 +341,10 @@ def test_skillopt_create_and_train_error_envelopes_are_consistent(monkeypatch, t
     assert eval_result["error_type"] == "invalid_argument"
     assert "not a path" in eval_result["error"]
 
+    bad_manifest = skillopt.create_eval({"eval_id": "manifest_bad", "manifest": 123})
+    assert bad_manifest["ok"] is False
+    assert bad_manifest["error_type"] == "invalid_argument"
+
     evaluated = skillopt.evaluate_run("../escape", {"baseline_score": 0.1, "candidate_score": 0.2})
     assert evaluated["ok"] is False
     assert evaluated["error_type"] == "invalid_argument"

@@ -105,12 +105,13 @@ def _render_preflight(payload: dict[str, Any]) -> list[str]:
 
 
 def _render_dispatch(payload: dict[str, Any]) -> list[str]:
-    result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
-    result_ok = result.get("ok", True) if isinstance(result, dict) else True
+    raw_result = payload.get("result")
+    result = raw_result if isinstance(raw_result, dict) else {}
+    result_ok = result.get("ok", True)
     if payload.get("ok", False) and result_ok:
         system = payload.get("system", "?")
         action = payload.get("action", "?")
-        compact = _compact(result)
+        compact = _compact(raw_result)
         suffix = f" — {compact}" if compact else ""
         return [f"OK {system}:{action}{suffix}"]
 
