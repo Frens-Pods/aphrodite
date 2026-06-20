@@ -103,10 +103,42 @@ def _caddy_host(template: str) -> str | None:
     return None
 
 
+def _parse_timestamp(raw_timestamp: str) -> float | None:
+    """Parse a systemd/ISO timestamp to epoch seconds without shelling out.
+
+    systemd's ExecMainStartTimestamp looks like ``Wed 2026-06-17 12:34:56 UTC``;
+    ISO 8601 is also accepted. Naive values are treated as UTC. Pure-Python so
+    it works off-Linux, where GNU ``date -d`` is unavailable (macOS/BSD).
+    """
+    candidate = raw_timestamp
+    head, _, tail = candidate.partition(" ")
+    if tail and len(head) == 3 and head.isalpha():
+        candidate = tail  # drop a leading weekday name ("Wed 2026-..." -> "2026-...")
+    for fmt in ("%Y-%m-%d %H:%M:%S %Z", "%Y-%m-%d %H:%M:%S %z", "%Y-%m-%d %H:%M:%S"):
+        try:
+            dt = datetime.strptime(candidate, fmt)
+        except ValueError:
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    try:
+        dt = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
 def _date_epoch(raw_timestamp: str) -> float | None:
     raw_timestamp = str(raw_timestamp or "").strip()
     if not raw_timestamp or raw_timestamp == "n/a":
         return None
+    parsed = _parse_timestamp(raw_timestamp)
+    if parsed is not None:
+        return parsed
+    # Fallback to GNU `date -d` where available (Linux) for exotic formats.
     try:
         result = subprocess.run(
             ["date", "-d", raw_timestamp, "+%s"],
