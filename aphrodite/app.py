@@ -118,6 +118,12 @@ def create_app():
         data["service_readiness"] = service_readiness()
         data["http_observability"] = http_runtime_observability()
         data["production_endpoint_preflight"] = production_endpoint_preflight()
+        data["adapters"] = {
+            "load_errors": getattr(app.state, "adapter_errors", {}) or {},
+            "quarantined": getattr(app.state, "adapter_quarantine", {}) or {},
+            "lifespan_errors": getattr(app.state, "adapter_lifespan_errors", {}) or {},
+            "lifespan_started": getattr(app.state, "adapter_lifespan_started", []) or [],
+        }
         return data
 
     @app.post("/dispatch/{custom_id}")

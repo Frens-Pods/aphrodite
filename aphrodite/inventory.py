@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .config import load_config
-from .modules import discover_adapters
+from .modules import discover_adapter_specs
 
 
 def _dedupe(names: list[str] | tuple[str, ...]) -> list[str]:
@@ -14,7 +14,8 @@ def modules_payload() -> dict[str, Any]:
     """Return configured and discovered module adapter inventory."""
     cfg = load_config()
     configured = _dedupe(cfg.modules)
-    discovered = sorted(discover_adapters())
+    specs, errors = discover_adapter_specs()
+    discovered = sorted(specs)
     discovered_set = set(discovered)
     configured_set = set(configured)
     active = _dedupe([name for name in configured if name in discovered_set])
@@ -37,4 +38,6 @@ def modules_payload() -> dict[str, Any]:
         "missing": missing,
         "available": available,
         "hint": " ".join(hint_parts),
+        "errors": errors,
+        "sources": {name: spec.source for name, spec in specs.items()},
     }

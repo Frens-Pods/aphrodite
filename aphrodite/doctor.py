@@ -7,6 +7,7 @@ from typing import Any
 from .config import DEFAULT_MODULES, load_config
 from .readiness import http_runtime_observability, mcp_readiness, production_endpoint_preflight, service_readiness
 from .update import latest_version_nudge
+from .modules import discover_adapter_specs
 
 REQUIRED_MODULE_FILES = [
     "aphrodite/__init__.py",
@@ -48,7 +49,7 @@ def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
         required.extend(REQUIRED_REPO_ARTIFACTS)
     present = [rel for rel in required if (root_path / rel).exists()]
     missing = [rel for rel in required if not (root_path / rel).exists()]
-    return {
+    payload = {
         "ok": not missing,
         "service": "aphrodite",
         "root": str(root_path),
@@ -64,6 +65,28 @@ def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
         "http_observability": http_runtime_observability(),
         "production_endpoint_preflight": production_endpoint_preflight(root_path),
         "latest_version": latest_version_nudge(),
+    }
+    payload["adapters"] = _adapter_lint()
+    return payload
+
+
+def _adapter_lint() -> dict:
+    specs, errors = discover_adapter_specs()
+    return {
+        "ok": not errors,
+        "adapters": [
+            {
+                "name": spec.system,
+                "source": spec.source,
+                "has_router": spec.router is not None,
+                "requires_auth": spec.requires_auth,
+                "has_readiness": spec.readiness is not None,
+                "has_lifespan": spec.lifespan is not None,
+                "api_version": spec.api_version,
+            }
+            for spec in specs.values()
+        ],
+        "errors": errors,
     }
 
 
