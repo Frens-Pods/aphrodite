@@ -18,7 +18,7 @@ That means your module can live, build, and ship independently.
 2. Enable the adapter system name:
 
    ```sh
-   export APHRODITE_MODULES=hello
+   export APHRODITE_MODULES=+hello  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set
    ```
 
 3. Dispatch a test custom id:

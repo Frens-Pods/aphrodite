@@ -33,10 +33,11 @@ A successful dispatch response includes `ok`, `system`, `version`, `action`, `pa
 | `acp_relay` | Bridges Aphrodite to an external ACP agent runtime and exposes both dispatch and `/acp/*` HTTP surfaces. | Requires a working external Hermes/ACP runtime for real turns; fake transports can test the Aphrodite-owned pieces. |
 
 Adapters that bridge private Hermes plugins belong in the operator overlay, not
-the public module set. Custom modules can still be enabled by listing their
-system names in `APHRODITE_MODULES`; each system name must match an entry-point
-name. Unknown names fall back to a placeholder handler so startup remains
-deterministic.
+the public module set. Custom modules can still be enabled by appending their
+system names with `APHRODITE_MODULES=+name`; the leading + appends to the
+built-in modules; a bare list replaces them — use bare only to intentionally
+reduce the set. Each system name must match an entry-point name. Unknown names
+fall back to a placeholder handler so startup remains deterministic.
 
 ## Adding an adapter
 
@@ -45,7 +46,7 @@ The quickest path is to let Aphrodite scaffold the package:
 ```bash
 aphrodite new-module my_module
 ~/.local/share/aphrodite/venv/bin/python -m pip install -e my_module
-export APHRODITE_MODULES=my_module
+export APHRODITE_MODULES=+my_module  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set
 aphrodite modules
 aphrodite dispatch-test my_module:v1:ping
 ```
@@ -82,7 +83,7 @@ one custom id:
 
 ```bash
 ~/.local/share/aphrodite/venv/bin/python -m pip install -e my_module
-export APHRODITE_MODULES=my_module
+export APHRODITE_MODULES=+my_module  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set
 aphrodite modules
 aphrodite dispatch-test my_module:v1:echo:hello
 ```
@@ -140,9 +141,11 @@ my_adapter = "your_pkg.your_module:handle"
 ~/.local/share/aphrodite/venv/bin/python -m pip install -e .
 ```
 
-4. Add the adapter name to `APHRODITE_MODULES` when it should be active. A
-   configured name with no discovered adapter falls back to Aphrodite's
-   placeholder handler instead of crashing.
+4. Add the adapter name with `APHRODITE_MODULES=+my_adapter` when it should be
+   active. The leading + appends to the built-in modules; a bare list replaces
+   them — use bare only to intentionally reduce the set. A configured name with
+   no discovered adapter falls back to Aphrodite's placeholder handler instead
+   of crashing.
 
 Return dictionaries with stable fields. Prefer `ok: true` or `ok: false` plus
 an `error` string for failures.

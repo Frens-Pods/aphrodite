@@ -30,9 +30,17 @@ def load_config() -> AphroditeConfig:
             "Set APHRODITE_PORT to an integer, e.g. 9079."
         )
     modules_raw = os.environ.get("APHRODITE_MODULES", "").strip()
-    modules = tuple(
-        part.strip() for part in modules_raw.split(",") if part.strip()
-    ) or tuple(DEFAULT_MODULES)
+    if modules_raw.startswith("+"):
+        extra = tuple(
+            part.strip() for part in modules_raw[1:].split(",") if part.strip()
+        )
+        modules = tuple(dict.fromkeys([*DEFAULT_MODULES, *extra]))
+    elif modules_raw:
+        modules = tuple(
+            part.strip() for part in modules_raw.split(",") if part.strip()
+        )
+    else:
+        modules = tuple(DEFAULT_MODULES)
     cors_origins_raw = os.environ.get("APHRODITE_CORS_ORIGINS", "").strip()
     cors_origins = tuple(
         part.strip() for part in cors_origins_raw.split(",") if part.strip()

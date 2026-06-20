@@ -28,13 +28,12 @@ def test_scaffold_module_creates_adapter_package(tmp_path):
     assert 'my_module = "my_module:handle"' in (target / "pyproject.toml").read_text(encoding="utf-8")
     assert payload["next_steps"] == [
         f"{sys.executable} -m pip install -e {target}",
-        "export APHRODITE_MODULES=my_module",
-        "export APHRODITE_MODULES=image_gen,skillopt,acp_relay,my_module  # keep Aphrodite's defaults too",
+        "export APHRODITE_MODULES=+my_module  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set",
         "aphrodite dispatch-test my_module:v1:ping",
     ]
     readme = (target / "README.md").read_text(encoding="utf-8")
     assert "`<aphrodite-python> -m pip install -e .`" in readme
-    assert "`export APHRODITE_MODULES=my_module`" in readme
+    assert "`export APHRODITE_MODULES=+my_module`" in readme
     assert '"result": {"ok": true, "action": "ping", "message": "my_module is alive"}' in readme
 
 

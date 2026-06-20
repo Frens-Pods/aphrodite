@@ -19,7 +19,7 @@ cp config/aphrodite.env.example config/aphrodite.env
 | --- | --- | --- | --- |
 | `APHRODITE_HOST` | `127.0.0.1` | `aphrodite.config.load_config` | Bind host used by CLI/service configuration. |
 | `APHRODITE_PORT` | `9079` | `aphrodite.config.load_config` | Bind port. Invalid values fall back to `9079`. |
-| `APHRODITE_MODULES` | `image_gen,skillopt,acp_relay` | `aphrodite.config.load_config`, `aphrodite.app.build_router` | Comma-separated adapter names to register with the dispatch router. Unknown names register a placeholder handler. |
+| `APHRODITE_MODULES` | `image_gen,skillopt,acp_relay` | `aphrodite.config.load_config`, `aphrodite.app.build_router` | Module selection for the dispatch router: unset/empty uses the default trio; `+name` appends to the built-in modules; a bare comma-separated list replaces them — use bare only to intentionally reduce the set. Unknown names register a placeholder handler. |
 | APHRODITE_CORS_ORIGINS | none (CORS disabled) | aphrodite.config.load_config, aphrodite.app.create_app | Comma-separated browser origins allowed to call HTTP routes cross-origin. Unset → no CORS middleware (loopback-only). Use * to allow any origin (credentials are then disabled per the CORS spec). |
 | `HERMES_HOME` | `~/.hermes` | `aphrodite.config`, `aphrodite.paths` | Locates the external Hermes home. If it points at `<root>/profiles/<name>`, `hermes_root()` collapses to `<root>` for shared plugin discovery. |
 | `APHRODITE_PUBLIC_BASE_URL` | none | readiness/preflight helpers | Public HTTPS origin for endpoint preflight. Do not include `/discord/interactions`; Aphrodite appends that path when checking the Discord endpoint. |

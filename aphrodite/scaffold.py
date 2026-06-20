@@ -68,7 +68,7 @@ Aphrodite and is discovered through the `aphrodite.adapters` entry point.
 ## Try it
 
 1. Run the install command printed by `aphrodite new-module` so the adapter installs into Aphrodite's Python environment (`<aphrodite-python> -m pip install -e .`)
-2. `export APHRODITE_MODULES=__NAME__`
+2. `export APHRODITE_MODULES=+__NAME__` (the leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set)
 3. `aphrodite dispatch-test __NAME__:v1:ping`
 
 Expected output includes the ping response under `result`:
@@ -116,8 +116,7 @@ def scaffold_module(name: str, dest: str | Path = ".") -> dict[str, Any]:
         "created": created,
         "next_steps": [
             f"{sys.executable} -m pip install -e {target}",
-            f"export APHRODITE_MODULES={name}",
-            f"export APHRODITE_MODULES=image_gen,skillopt,acp_relay,{name}  # keep Aphrodite's defaults too",
+            f"export APHRODITE_MODULES=+{name}  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set",
             f"aphrodite dispatch-test {name}:v1:ping",
         ],
     }
