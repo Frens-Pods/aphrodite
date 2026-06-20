@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import hmac
 import json
 import os
@@ -61,8 +63,32 @@ def _require_adapter_auth(authorization: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="invalid or missing adapter bearer token")
 
 
+def _build_adapter_lifespan(specs):
+    @contextlib.asynccontextmanager
+    async def _lifespan(app):
+        started: list[str] = []
+        errors: dict[str, Any] = {}
+        timeout = float(os.environ.get("APHRODITE_ADAPTER_LIFESPAN_TIMEOUT", "30") or 30)
+        async with contextlib.AsyncExitStack() as stack:
+            for system, spec in specs.items():
+                if spec.lifespan is None:
+                    continue
+                try:
+                    await asyncio.wait_for(stack.enter_async_context(spec.lifespan(app)), timeout=timeout)
+                    started.append(system)
+                except Exception as exc:  # isolate: one adapter's startup failure must not crash the app
+                    errors[system] = {"name": system, "phase": "startup", "error": repr(exc)}
+            app.state.adapter_lifespan_started = started
+            app.state.adapter_lifespan_errors = errors
+            yield
+        # AsyncExitStack guarantees shutdown of successfully-started adapters
+
+    return _lifespan
+
+
 def create_app():
-    app = FastAPI(title="Aphrodite", version=__version__)
+    specs, adapter_errors = discover_adapter_specs()
+    app = FastAPI(title="Aphrodite", version=__version__, lifespan=_build_adapter_lifespan(specs))
     cfg = load_config()
     if cfg.cors_origins:
         if "*" in cfg.cors_origins:
@@ -223,7 +249,6 @@ def create_app():
             raise HTTPException(status_code=400, detail="Invalid JSON payload")
         return handle_interaction_payload(payload, router)
 
-    specs, adapter_errors = discover_adapter_specs()
     quarantined: dict[str, Any] = {}
     for system, spec in specs.items():
         if spec.router is None:
