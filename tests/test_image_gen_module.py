@@ -134,7 +134,7 @@ def test_image_generate_route_rejects_non_image_local_file(tmp_path):
 def test_dispatch_status_includes_provider_and_default_model():
     data = image_gen.handle("status", [], {})
 
-    assert data["handled"] is True
+    assert data["ok"] is True
     assert data["module"] == "image_gen"
     assert data["provider"] == "aphrodite-openai-codex"
     assert data["default_model"] == image_gen.DEFAULT_MODEL
@@ -143,7 +143,7 @@ def test_dispatch_status_includes_provider_and_default_model():
 def test_dispatch_models_lists_supported_keys_and_default():
     data = image_gen.handle("models", [], {})
 
-    assert data["handled"] is True
+    assert data["ok"] is True
     assert data["module"] == "image_gen"
     assert data["models"] == list(image_gen.MODELS)
     assert data["default_model"] == image_gen.DEFAULT_MODEL
@@ -153,7 +153,7 @@ def test_dispatch_models_lists_supported_keys_and_default():
 def test_dispatch_sizes_lists_supported_size_keys():
     data = image_gen.handle("sizes", [], {})
 
-    assert data["handled"] is True
+    assert data["ok"] is True
     assert data["module"] == "image_gen"
     assert data["sizes"] == list(image_gen.SIZES)
     assert data["aspect_ratios"] == list(image_gen.SIZES)
@@ -162,7 +162,7 @@ def test_dispatch_sizes_lists_supported_size_keys():
 def test_dispatch_aspect_ratios_alias_lists_supported_size_keys():
     data = image_gen.handle("aspect_ratios", [], {})
 
-    assert data["handled"] is True
+    assert data["ok"] is True
     assert data["module"] == "image_gen"
     assert data["sizes"] == list(image_gen.SIZES)
     assert data["aspect_ratios"] == list(image_gen.SIZES)
@@ -191,7 +191,7 @@ def test_dispatch_router_wraps_new_read_only_actions():
     assert result["version"] == "v1"
     assert result["action"] == "models"
     assert result["payload"] == []
-    assert result["result"]["handled"] is True
+    assert result["result"]["ok"] is True
     assert result["result"]["models"] == list(image_gen.MODELS)
 
 

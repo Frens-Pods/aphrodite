@@ -159,19 +159,19 @@ def test_mcp_import_wrapper_preserves_explicit_replace_boundary(skillopt_data, t
 def test_mcp_image_gen_wrappers_return_static_metadata():
     status = mcp_server.aphrodite_image_gen_status()
     json.dumps(status)
-    assert status["handled"] is True
+    assert status["ok"] is True
     assert status["default_model"]
 
     models = mcp_server.aphrodite_image_gen_models()
     json.dumps(models)
-    assert models["handled"] is True
+    assert models["ok"] is True
     assert isinstance(models["models"], list)
     assert models["models"]
     assert models["default_model"]
 
     sizes = mcp_server.aphrodite_image_gen_sizes()
     json.dumps(sizes)
-    assert sizes["handled"] is True
+    assert sizes["ok"] is True
     assert isinstance(sizes["sizes"], list)
     assert sizes["sizes"]
     assert isinstance(sizes["aspect_ratios"], list)

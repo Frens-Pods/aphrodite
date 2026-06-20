@@ -738,7 +738,7 @@ def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str
         data = list_runs()
         evals = list_evals()
         data.update({
-            "handled": True,
+            "ok": True,
             "ephemeral": True,
             "evals": evals.get("evals", []),
             "eval_count": evals.get("count", 0),
