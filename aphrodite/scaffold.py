@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastapi import APIRouter
+
 
 def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str, Any]:
     """Handle one dispatch call.
@@ -40,6 +42,15 @@ def handle(action: str, payload: list[str], context: dict[str, Any]) -> dict[str
     if action == "ping":
         return {"ok": True, "action": action, "message": "__NAME__ is alive"}
     return {"ok": False, "error": f"unknown action: {action}", "supported_actions": ["ping"], "examples": [f"aphrodite dispatch-test __NAME__:v1:ping"]}
+
+
+router = APIRouter()
+requires_auth = False  # public demo route; set True + APHRODITE_ADAPTER_AUTH_TOKEN to protect real routes
+
+
+@router.get("/hello")
+def hello() -> dict[str, Any]:
+    return {"ok": True, "message": "__NAME__ router is alive"}
 '''
 
 PYPROJECT_TEMPLATE = '''[build-system]
@@ -51,10 +62,10 @@ name = "aphrodite-__NAME__-adapter"
 version = "0.1.0"
 description = "Aphrodite module adapter: __NAME__."
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["fastapi"]
 
 [project.entry-points."aphrodite.adapters"]
-__NAME__ = "__NAME__:handle"
+__NAME__ = "__NAME__"
 
 [tool.setuptools]
 py-modules = ["__NAME__"]
@@ -77,6 +88,20 @@ Expected output includes the ping response under `result`:
 {"ok": true, "result": {"ok": true, "action": "ping", "message": "__NAME__ is alive"}}
 ```
 Then edit `handle()` to add your own actions.
+'''
+
+TEST_TEMPLATE = '''from __NAME__ import handle, router
+from aphrodite.modules import AdapterSpec
+from aphrodite.testing import dispatch_once, make_adapter_client
+
+
+def test_handle_ping():
+    assert dispatch_once(handle, "__NAME__:v1:ping")["ok"] is True
+
+
+def test_router_hello():
+    spec = AdapterSpec(system="__NAME__", handle=handle, router=router, requires_auth=False)
+    assert make_adapter_client(spec).get("/__NAME__/hello").json()["ok"] is True
 '''
 
 
@@ -102,6 +127,7 @@ def scaffold_module(name: str, dest: str | Path = ".") -> dict[str, Any]:
         f"{name}.py": MODULE_TEMPLATE,
         "pyproject.toml": PYPROJECT_TEMPLATE,
         "README.md": README_TEMPLATE,
+        "test_basic.py": TEST_TEMPLATE,
     }
     created: list[str] = []
     for filename, template in files.items():

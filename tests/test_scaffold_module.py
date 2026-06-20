@@ -25,7 +25,10 @@ def test_scaffold_module_creates_adapter_package(tmp_path):
     assert (target / "my_module.py").exists()
     assert (target / "pyproject.toml").exists()
     assert (target / "README.md").exists()
-    assert 'my_module = "my_module:handle"' in (target / "pyproject.toml").read_text(encoding="utf-8")
+    assert (target / "test_basic.py").exists()
+    pyproject = (target / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'dependencies = ["fastapi"]' in pyproject
+    assert 'my_module = "my_module"' in pyproject
     assert payload["next_steps"] == [
         f"{sys.executable} -m pip install -e {target}",
         "export APHRODITE_MODULES=+my_module  # leading + appends to the built-in modules; a bare list replaces them — use bare only to intentionally reduce the set",
@@ -42,6 +45,8 @@ def test_generated_adapter_handle_ping_and_unknown_action(tmp_path):
 
     scaffold_module("my_module", tmp_path)
     module = _load_generated_module(tmp_path / "my_module" / "my_module.py")
+    assert hasattr(module, "router")
+    assert module.requires_auth is False
 
     ping = module.handle("ping", [], {})
     assert ping["ok"] is True
