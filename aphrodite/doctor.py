@@ -67,6 +67,7 @@ def doctor_payload(root: Path | str | None = None) -> dict[str, Any]:
         "latest_version": latest_version_nudge(),
     }
     payload["adapters"] = _adapter_lint()
+    payload["dependencies"] = _dependency_health()
     return payload
 
 
@@ -87,6 +88,47 @@ def _adapter_lint() -> dict:
             for spec in specs.values()
         ],
         "errors": errors,
+    }
+
+
+def _dependency_health() -> dict[str, Any]:
+    from importlib import metadata as _md
+
+    core = {"fastapi": ">=0.110", "pynacl": ">=1.5", "uvicorn": ">=0.29"}
+    try:
+        from packaging.specifiers import SpecifierSet
+        from packaging.version import Version
+
+        can_compare = True
+    except Exception:
+        can_compare = False
+    found: dict[str, str] = {}
+    missing: list[str] = []
+    below_floor: dict[str, str] = {}
+    for dist, floor in core.items():
+        try:
+            ver = _md.version(dist)
+        except _md.PackageNotFoundError:
+            missing.append(dist)
+            continue
+        found[dist] = ver
+        if can_compare:
+            try:
+                if Version(ver) not in SpecifierSet(floor):
+                    below_floor[dist] = f"{ver} does not satisfy {floor}"
+            except Exception:
+                pass
+    return {
+        "ok": not missing and not below_floor,
+        "core_floor": core,
+        "installed": found,
+        "missing": missing,
+        "below_floor": below_floor,
+        "version_check": "active" if can_compare else "presence-only (packaging unavailable)",
+        "note": (
+            "adapters share this interpreter/venv; a conflicting pin in an installed "
+            "adapter can break the host. Aphrodite does not sandbox adapter code."
+        ),
     }
 
 
