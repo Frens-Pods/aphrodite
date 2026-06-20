@@ -7,6 +7,10 @@ from pathlib import Path
 
 import pytest
 
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 from aphrodite import mcp_server
 
 
@@ -46,7 +50,40 @@ def test_mcp_wrapper_tool_names_are_stable():
         "aphrodite_acp_relay_readiness",
         "aphrodite_acp_relay_list_conversations",
         "aphrodite_acp_relay_get_conversation",
+        "aphrodite_adapters",
+        "aphrodite_dispatch",
     ]
+
+
+def test_mcp_wrapper_tool_names_include_discovery_dispatch():
+    assert "aphrodite_adapters" in mcp_server.TOOL_NAMES
+    assert "aphrodite_dispatch" in mcp_server.TOOL_NAMES
+
+
+def test_mcp_dispatch_wrapper_routes_builtin_custom_id(monkeypatch):
+    monkeypatch.delenv("APHRODITE_MODULES", raising=False)
+    monkeypatch.delenv("APHRODITE_TRUSTED_ADAPTERS", raising=False)
+
+    dispatched = mcp_server.aphrodite_dispatch("image_gen:v1:status")
+
+    json.dumps(dispatched)
+    assert dispatched["ok"] is True
+    assert dispatched["system"] == "image_gen"
+    assert isinstance(dispatched["result"], dict)
+
+
+def test_mcp_adapters_wrapper_lists_native_trio(monkeypatch):
+    monkeypatch.delenv("APHRODITE_TRUSTED_ADAPTERS", raising=False)
+
+    inventory = mcp_server.aphrodite_adapters()
+
+    json.dumps(inventory)
+    assert inventory["ok"] is True
+    assert isinstance(inventory["errors"], dict)
+    for name in {"image_gen", "skillopt", "acp_relay"}:
+        assert name in inventory["adapters"]
+        assert inventory["adapters"][name]["source"] == "builtin"
+        assert isinstance(inventory["adapters"][name]["has_router"], bool)
 
 
 def test_mcp_wrappers_reuse_skillopt_module_for_train_eval_bundle(skillopt_data, tmp_path):
