@@ -10,7 +10,7 @@ if __package__ in {None, ""}:
     #   python /path/to/aphrodite/aphrodite/mcp_server.py
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from aphrodite.modules import acp_relay, image_gen, skillopt
+from aphrodite.modules import acp_relay, discover_adapter_specs, image_gen, skillopt
 
 try:  # pragma: no cover - exercised when the optional SDK is installed.
     from mcp.server.fastmcp import FastMCP
@@ -35,6 +35,8 @@ TOOL_NAMES = [
     "aphrodite_acp_relay_readiness",
     "aphrodite_acp_relay_list_conversations",
     "aphrodite_acp_relay_get_conversation",
+    "aphrodite_adapters",
+    "aphrodite_dispatch",
 ]
 
 
@@ -139,6 +141,27 @@ def aphrodite_acp_relay_get_conversation(conversation_id: str) -> dict[str, Any]
     return _json_safe(acp_relay.handle("get", [conversation_id], {}))
 
 
+def aphrodite_adapters() -> dict[str, Any]:
+    """List discovered Aphrodite adapters and per-adapter discovery errors."""
+    specs, errors = discover_adapter_specs()
+    adapters = {
+        name: {
+            "source": spec.source,
+            "has_router": spec.router is not None,
+        }
+        for name, spec in specs.items()
+    }
+    return _json_safe({"ok": True, "adapters": adapters, "errors": errors})
+
+
+def aphrodite_dispatch(custom_id: str) -> dict[str, Any]:
+    """Dispatch an Aphrodite custom_id through the discovered adapter router."""
+    from aphrodite.app import build_router
+
+    router = build_router()
+    return _json_safe(router.dispatch(custom_id, context={"source": "mcp"}))
+
+
 def build_server() -> Any:
     """Build the optional FastMCP stdio server without starting it."""
     if FastMCP is None:
@@ -146,10 +169,11 @@ def build_server() -> Any:
     mcp = FastMCP(
         "aphrodite",
         instructions=(
-            "Aphrodite no-core sidecar MCP server. Exposes review-gated SkillOpt tools plus "
-            "read-only image_gen and acp_relay metadata over stdio. Image generation and ACP "
-            "conversational turns stay on the Aphrodite HTTP surface. "
-            "SkillOpt recommendations are advisory; imports are explicit generated-skill writes."
+            "Aphrodite no-core sidecar MCP server. Exposes review-gated SkillOpt tools, "
+            "read-only image_gen and acp_relay metadata, and discovery-backed adapter "
+            "inventory/dispatch over stdio. Image generation and ACP conversational turns "
+            "stay on the Aphrodite HTTP surface. SkillOpt recommendations are advisory; "
+            "imports are explicit generated-skill writes."
         ),
     )
     for fn in (
@@ -169,6 +193,8 @@ def build_server() -> Any:
         aphrodite_acp_relay_readiness,
         aphrodite_acp_relay_list_conversations,
         aphrodite_acp_relay_get_conversation,
+        aphrodite_adapters,
+        aphrodite_dispatch,
     ):
         mcp.tool(name=fn.__name__)(fn)
     return mcp
