@@ -9,7 +9,6 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 
 from . import __version__
 from .config import AphroditeConfig, load_config
@@ -136,95 +135,6 @@ def create_app(config: AphroditeConfig | None = None, *, root_path: str | None =
 
         return generate_image(payload)
 
-    @app.post("/skillopt/runs")
-    def skillopt_create_run(payload: dict[str, Any]):
-        from .modules.skillopt import create_run
-
-        return create_run(payload)
-
-    @app.post("/skillopt/runs/train")
-    def skillopt_train_run(payload: dict[str, Any]):
-        from .modules.skillopt import train_run
-
-        return train_run(payload)
-
-    @app.get("/skillopt/ui", response_class=HTMLResponse)
-    def skillopt_ui():
-        from .modules.skillopt import review_html
-
-        return review_html()
-
-    @app.post("/skillopt/evals")
-    def skillopt_create_eval(payload: dict[str, Any]):
-        from .modules.skillopt import create_eval
-
-        return create_eval(payload)
-
-    @app.get("/skillopt/evals")
-    def skillopt_list_evals():
-        from .modules.skillopt import list_evals
-
-        return list_evals()
-
-    @app.get("/skillopt/evals/{eval_id}")
-    def skillopt_get_eval(eval_id: str):
-        from .modules.skillopt import get_eval
-
-        return get_eval(eval_id)
-
-    @app.get("/skillopt/runs")
-    def skillopt_list_runs():
-        from .modules.skillopt import list_runs
-
-        return list_runs()
-
-    @app.get("/skillopt/runs/{run_id}")
-    def skillopt_get_run(run_id: str):
-        from .modules.skillopt import get_run
-
-        return get_run(run_id)
-
-    @app.get("/skillopt/runs/{run_id}/diff")
-    def skillopt_get_run_diff(run_id: str):
-        from .modules.skillopt import get_diff
-
-        return get_diff(run_id)
-
-    @app.get("/skillopt/runs/{run_id}/review", response_class=HTMLResponse)
-    def skillopt_get_run_review(run_id: str):
-        from .modules.skillopt import review_html
-
-        return review_html(run_id)
-
-    @app.get("/skillopt/runs/{run_id}/files/{filename}")
-    def skillopt_get_run_file(run_id: str, filename: str):
-        from .modules.skillopt import get_file
-
-        return get_file(run_id, filename)
-
-    @app.post("/skillopt/runs/{run_id}/evaluate")
-    def skillopt_evaluate_run(run_id: str, payload: dict[str, Any]):
-        from .modules.skillopt import evaluate_run
-
-        return evaluate_run(run_id, payload)
-
-    @app.get("/skillopt/runs/{run_id}/evaluation")
-    def skillopt_get_evaluation(run_id: str):
-        from .modules.skillopt import get_evaluation
-
-        return get_evaluation(run_id)
-
-    @app.post("/skillopt/runs/{run_id}/bundle")
-    def skillopt_export_bundle(run_id: str):
-        from .modules.skillopt import export_bundle
-
-        return export_bundle(run_id)
-
-    @app.post("/skillopt/runs/{run_id}/import")
-    def skillopt_import_run(run_id: str, payload: dict[str, Any]):
-        from .modules.skillopt import import_candidate
-
-        return import_candidate(run_id, payload)
 
     @app.post("/discord/interactions/dry-run")
     def discord_interactions_dry_run(payload: dict[str, Any]):

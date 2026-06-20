@@ -80,18 +80,26 @@ def test_discover_adapter_specs_records_load_error_with_traceback(monkeypatch) -
     assert "RuntimeError: boom" in errors["broken"]["traceback"]
 
 
-def test_trusted_adapters_allowlist_blocks_unlisted_entry_point(monkeypatch) -> None:
+def test_trusted_adapters_allowlist_exempts_builtins_and_blocks_unlisted_third_party(monkeypatch) -> None:
+    from aphrodite.modules import skillopt
+
     monkeypatch.setenv("APHRODITE_TRUSTED_ADAPTERS", "allowed")
     monkeypatch.setattr(
         modules,
         "entry_points",
-        lambda group: [FakeEntryPoint("allowed"), FakeEntryPoint("blocked")],
+        lambda group: [
+            FakeEntryPoint("allowed"),
+            FakeEntryPoint("skillopt", skillopt),
+            FakeEntryPoint("blocked"),
+        ],
     )
 
     specs, errors = discover_adapter_specs()
 
-    assert list(specs) == ["allowed"]
+    assert list(specs) == ["allowed", "skillopt"]
     assert specs["allowed"].handle is handler
+    assert specs["skillopt"].router is skillopt.router
+    assert specs["skillopt"].source == "builtin"
     assert errors["blocked"]["name"] == "blocked"
     assert errors["blocked"]["phase"] == "blocked"
 

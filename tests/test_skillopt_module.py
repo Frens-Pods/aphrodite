@@ -12,6 +12,33 @@ BEST_SKILL = """# Question Answering Skill\n\n- Prefer concise answers.\n"""
 SOURCE_SKILL = """---\nname: old-qa\ndescription: \"Old skill.\"\n---\n\n# Old\n\n- Be vague.\n"""
 
 
+def test_skillopt_routes_remain_public_and_html_through_create_app(monkeypatch, tmp_path):
+    monkeypatch.setenv("APHRODITE_SKILLOPT_DATA_ROOT", str(tmp_path / "data"))
+    monkeypatch.setenv("APHRODITE_ADAPTER_AUTH_TOKEN", "secret-token")
+
+    client = TestClient(create_app())
+    runs = client.get("/skillopt/runs")
+    assert runs.status_code == 200
+    assert runs.json() == {"ok": True, "runs": [], "count": 0}
+
+    ui = client.get("/skillopt/ui")
+    assert ui.status_code == 200
+    assert ui.headers["content-type"].startswith("text/html")
+    assert "SkillOpt Runs" in ui.text
+
+    created = client.post(
+        "/skillopt/runs",
+        json={"run_id": "skillopt-public-html", "skill_name": "public-html", "best_skill_md": BEST_SKILL},
+    )
+    assert created.status_code == 200
+    assert created.json()["ok"] is True
+
+    review = client.get("/skillopt/runs/skillopt-public-html/review")
+    assert review.status_code == 200
+    assert review.headers["content-type"].startswith("text/html")
+    assert "SkillOpt Review" in review.text
+
+
 def test_skillopt_run_wraps_best_skill_and_imports_candidate(monkeypatch, tmp_path):
     data_root = tmp_path / "skillopt-data"
     profile = tmp_path / "profile"

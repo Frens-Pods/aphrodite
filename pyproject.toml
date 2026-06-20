@@ -26,7 +26,7 @@ aphrodite = "aphrodite.cli:main"
 
 [project.entry-points."aphrodite.adapters"]
 image_gen = "aphrodite.modules.image_gen:handle"
-skillopt = "aphrodite.modules.skillopt:handle"
+skillopt = "aphrodite.modules.skillopt"
 acp_relay = "aphrodite.modules.acp_relay:handle"
 
 [tool.setuptools.dynamic]

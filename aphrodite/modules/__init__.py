@@ -92,7 +92,7 @@ def discover_adapter_specs() -> tuple[dict[str, AdapterSpec], dict[str, dict[str
             continue
         seen.add(name)
 
-        if trusted is not None and name not in trusted:
+        if trusted is not None and name not in trusted and name not in _BUILTIN_ADAPTERS:
             errors[name] = {
                 "name": name,
                 "phase": "blocked",
